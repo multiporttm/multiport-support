@@ -41,6 +41,17 @@ a:hover {
   font-weight: 600;
   color: var(--text);
 }
+.brand .tm {
+  font-size: 13px;
+  font-weight: 400;
+  vertical-align: super;
+  margin-left: 1px;
+}
+.byline {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
 .tagline {
   margin: 4px 0 0;
   color: var(--text-secondary);
