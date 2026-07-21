@@ -5,4 +5,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "multiport-support-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "acf778af-1099-4c37-bc77-ae05c49f3708"
