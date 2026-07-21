@@ -119,15 +119,13 @@ the site isn't open, using the Web Push API and a service worker
 first (iOS only allows web push for installed PWAs).
 
 This needs a VAPID key pair (the identity keys the server signs push
-requests with) as two more secrets/vars, **not stored in this repo**:
-
-- `VAPID_PUBLIC_KEY` — not sensitive, can be a plain variable.
-- `VAPID_PRIVATE_KEY_JWK` — the private key as a JSON Web Key string; set as
-  an **encrypted secret**.
-- `VAPID_SUBJECT` (optional) — a `mailto:` contact address included in push
-  requests; defaults to `mailto:admin@multiportllc.com` if unset.
-
-Generate a pair once with Node:
+requests with). Unlike `DEV_PASSWORD`, these are hardcoded directly in
+`functions/api/_push.js` rather than read from an environment
+variable/secret — this repo is public, so the private key is visible to
+anyone who looks at the source. In practice that's low-risk here (signing
+push requests alone isn't enough to reach a real subscriber without also
+having their subscription record from the database), but if that ever
+matters, rotate to a fresh pair:
 
 ```js
 const { webcrypto } = require('node:crypto');
@@ -142,8 +140,11 @@ const b64url = (buf) => Buffer.from(buf).toString('base64')
 })();
 ```
 
-Set both values in the Pages project's **Settings → Variables and secrets**
-(same place as `DEV_PASSWORD`), then trigger a redeploy. Push subscriptions
-are stored in the `push_subscriptions` D1 table (`migrations/0003_push.sql`);
-a subscription that a push service reports as gone (404/410) is pruned
-automatically the next time a notification is sent.
+...and paste the new values into the `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY_JWK`
+constants at the top of `functions/api/_push.js`. `VAPID_SUBJECT` (a `mailto:`
+contact address included in push requests) is also a constant there, defaulting
+to `mailto:admin@multiportllc.com`.
+
+Push subscriptions are stored in the `push_subscriptions` D1 table
+(`migrations/0003_push.sql`); a subscription that a push service reports as
+gone (404/410) is pruned automatically the next time a notification is sent.

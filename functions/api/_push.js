@@ -1,3 +1,17 @@
+export const VAPID_PUBLIC_KEY = 'BMoS90XMSRMjm6BzboubQUimZrgBFHkTNO13Ik9FCB-I1e8F1Ovjg21bcxOq7bkPDJV39ZFT85autX59nVomP6A';
+
+const VAPID_PRIVATE_KEY_JWK = {
+  key_ops: ['sign'],
+  ext: true,
+  kty: 'EC',
+  x: 'yhL3RcxJEyOboHNui5tBSKZmuAEUeRM07XciT0UIH4g',
+  y: '1e8F1Ovjg21bcxOq7bkPDJV39ZFT85autX59nVomP6A',
+  crv: 'P-256',
+  d: 'hlWgBuS3b8agMH9wGQm8rEkXA6aclNlheqgEbItqa3s',
+};
+
+const VAPID_SUBJECT = 'mailto:admin@multiportllc.com';
+
 function b64urlEncode(bytes) {
   let str = '';
   const arr = new Uint8Array(bytes);
@@ -30,29 +44,27 @@ async function hmacSha256(keyBytes, dataBytes) {
   return new Uint8Array(sig);
 }
 
-async function buildVapidHeader(endpoint, env) {
+async function buildVapidHeader(endpoint) {
   const audience = new URL(endpoint).origin;
   const expiration = Math.floor(Date.now() / 1000) + 12 * 60 * 60;
-  const subject = env.VAPID_SUBJECT || 'mailto:admin@multiportllc.com';
 
   const header = { typ: 'JWT', alg: 'ES256' };
-  const payload = { aud: audience, exp: expiration, sub: subject };
+  const payload = { aud: audience, exp: expiration, sub: VAPID_SUBJECT };
 
   const encoder = new TextEncoder();
   const headerB64 = b64urlEncode(encoder.encode(JSON.stringify(header)));
   const payloadB64 = b64urlEncode(encoder.encode(JSON.stringify(payload)));
   const signingInput = `${headerB64}.${payloadB64}`;
 
-  const privateJwk = JSON.parse(env.VAPID_PRIVATE_KEY_JWK);
   const signKey = await crypto.subtle.importKey(
-    'jwk', privateJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
+    'jwk', VAPID_PRIVATE_KEY_JWK, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
   );
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' }, signKey, encoder.encode(signingInput)
   );
 
   const jwt = `${signingInput}.${b64urlEncode(signature)}`;
-  return `vapid t=${jwt}, k=${env.VAPID_PUBLIC_KEY}`;
+  return `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`;
 }
 
 // Encrypts `payload` per RFC 8291 (aes128gcm) for a single push subscriber.
@@ -104,9 +116,9 @@ async function encryptPayload(subscription, payload) {
 
 // Sends a push message to one subscriber. Returns true on success, false if
 // the subscription is gone (404/410) and should be deleted by the caller.
-export async function sendWebPush(subscription, payload, env) {
+export async function sendWebPush(subscription, payload) {
   const body = await encryptPayload(subscription, payload);
-  const authHeader = await buildVapidHeader(subscription.endpoint, env);
+  const authHeader = await buildVapidHeader(subscription.endpoint);
 
   const res = await fetch(subscription.endpoint, {
     method: 'POST',
@@ -127,15 +139,13 @@ export async function sendWebPush(subscription, payload, env) {
 
 // Fire-and-forget notify of every stored subscriber; prunes dead ones.
 export async function notifySubscribers(env, payload) {
-  if (!env.VAPID_PRIVATE_KEY_JWK || !env.VAPID_PUBLIC_KEY) return;
-
   const { results } = await env.DB.prepare(
     'SELECT endpoint, p256dh, auth FROM push_subscriptions'
   ).all();
 
   await Promise.all(results.map(async (sub) => {
     try {
-      const result = await sendWebPush(sub, payload, env);
+      const result = await sendWebPush(sub, payload);
       if (result.gone) {
         await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').bind(sub.endpoint).run();
       }
