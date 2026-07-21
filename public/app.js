@@ -48,6 +48,95 @@ function quoteOf(authorName, body) {
   return `${authorName} wrote:\n${quoted}\n\n`;
 }
 
+// ---- Push notifications (developer only) ----
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function getExistingPushSubscription() {
+  if (!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+  if (!reg) return null;
+  return reg.pushManager.getSubscription();
+}
+
+async function enableDevPushNotifications() {
+  if (!pushSupported()) return { ok: false, reason: 'unsupported' };
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return { ok: false, reason: permission };
+
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const { publicKey } = await api('/api/push/vapid-public-key');
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+
+    await api('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON()),
+    });
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+async function renderPushStatus() {
+  const el = document.getElementById('push-status');
+  if (!el || !loggedIn) return;
+
+  if (!pushSupported()) {
+    el.innerHTML = '';
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    el.innerHTML = `<span class="push-off">Notifications blocked</span>`;
+    return;
+  }
+
+  const existing = await getExistingPushSubscription();
+  if (existing && Notification.permission === 'granted') {
+    el.innerHTML = `<span class="push-on">Notifications on</span>`;
+    return;
+  }
+
+  el.innerHTML = `<a href="#" id="enable-push-link">Enable notifications</a>`;
+  const link = document.getElementById('enable-push-link');
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    link.textContent = 'Enabling…';
+    const result = await enableDevPushNotifications();
+    if (!loggedIn) return;
+    if (result.ok) {
+      renderPushStatus();
+    } else if (result.reason === 'denied') {
+      el.innerHTML = `<span class="push-off">Notifications blocked</span>`;
+    } else {
+      link.textContent = 'Enable notifications';
+    }
+  });
+}
+
 // ---- Auth ----
 
 async function refreshAuthStatus() {
@@ -64,7 +153,7 @@ function renderAuthStatus() {
   const el = document.getElementById('auth-status');
   if (!el) return;
   if (loggedIn) {
-    el.innerHTML = `<span class="dev-badge">Logged in as Developer</span><a href="#" id="logout-link">Log out</a>`;
+    el.innerHTML = `<span class="dev-badge">Logged in as Developer</span><span id="push-status"></span><a href="#" id="logout-link">Log out</a>`;
     document.getElementById('logout-link').addEventListener('click', async (e) => {
       e.preventDefault();
       try { await api('/api/logout', { method: 'POST' }); } catch { /* ignore */ }
@@ -72,6 +161,7 @@ function renderAuthStatus() {
       renderAuthStatus();
       router();
     });
+    renderPushStatus();
   } else {
     el.innerHTML = `<a href="#/login">Developer log in</a>`;
   }

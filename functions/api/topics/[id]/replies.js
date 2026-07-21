@@ -1,7 +1,8 @@
 import { MAX_BODY } from '../../_limits.js';
 import { isLoggedIn } from '../../_auth.js';
+import { notifySubscribers } from '../../_push.js';
 
-export async function onRequestPost({ request, env, params }) {
+export async function onRequestPost({ request, env, params, waitUntil }) {
   const id = Number(params.id);
   if (!Number.isInteger(id)) {
     return Response.json({ error: 'invalid topic id' }, { status: 400 });
@@ -31,7 +32,7 @@ export async function onRequestPost({ request, env, params }) {
   const loggedIn = await isLoggedIn(request, env);
   const authorName = loggedIn ? 'Developer' : 'Anonymous';
 
-  const topic = await env.DB.prepare('SELECT id FROM topics WHERE id = ?').bind(id).first();
+  const topic = await env.DB.prepare('SELECT id, title FROM topics WHERE id = ?').bind(id).first();
   if (!topic) {
     return Response.json({ error: 'topic not found' }, { status: 404 });
   }
@@ -43,6 +44,14 @@ export async function onRequestPost({ request, env, params }) {
   await env.DB.prepare(
     `UPDATE topics SET reply_count = reply_count + 1, last_activity_at = datetime('now') WHERE id = ?`
   ).bind(id).run();
+
+  if (!loggedIn) {
+    waitUntil(notifySubscribers(env, {
+      title: 'New reply on Multiport Support',
+      body: `${topic.title}: ${body}`,
+      url: `/#/t/${id}`,
+    }).catch(() => {}));
+  }
 
   return Response.json({ id: result.meta.last_row_id }, { status: 201 });
 }

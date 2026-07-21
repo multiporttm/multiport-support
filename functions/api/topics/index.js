@@ -1,5 +1,6 @@
 import { MAX_TITLE, MAX_BODY } from '../_limits.js';
 import { isLoggedIn } from '../_auth.js';
+import { notifySubscribers } from '../_push.js';
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -27,7 +28,7 @@ export async function onRequestGet({ request, env }) {
   return Response.json(results);
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   let data;
   try {
     data = await request.json();
@@ -66,5 +67,15 @@ export async function onRequestPost({ request, env }) {
     `INSERT INTO topics (category_id, title, body, author_name) VALUES (?, ?, ?, ?)`
   ).bind(category.id, title, body, authorName).run();
 
-  return Response.json({ id: result.meta.last_row_id }, { status: 201 });
+  const topicId = result.meta.last_row_id;
+
+  if (!loggedIn) {
+    waitUntil(notifySubscribers(env, {
+      title: 'New topic on Multiport Support',
+      body: title,
+      url: `/#/t/${topicId}`,
+    }).catch(() => {}));
+  }
+
+  return Response.json({ id: topicId }, { status: 201 });
 }

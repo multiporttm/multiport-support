@@ -21,7 +21,12 @@ Built on **Cloudflare Pages** (static frontend + Pages Functions API) and
   - `POST /api/login` — developer login `{ password }`, sets a session cookie
   - `POST /api/logout` — clears the session cookie
   - `GET /api/session` — `{ loggedIn: boolean }`
+  - `GET /api/push/vapid-public-key` — public key for `pushManager.subscribe`
+  - `POST /api/push/subscribe` — store a push subscription (developer session required)
+  - `POST /api/push/unsubscribe` — remove a push subscription
 - `migrations/` — D1 schema + seed data for the default categories
+- `public/sw.js` — service worker that shows push notifications
+- `public/icons/`, `public/manifest.json` — Home Screen icon + PWA manifest
 
 ## Local setup
 
@@ -94,3 +99,51 @@ table from `migrations/0002_auth.sql`): **2 incorrect guesses locks that IP
 out for 15 minutes** before it can try again. A successful login stores a
 random session token in the `sessions` table and sets an HttpOnly cookie
 (12-hour expiry); "Log out" in the header clears both.
+
+## Home Screen icon
+
+`public/manifest.json` + `public/icons/*.png` + the `<link rel="apple-touch-icon">`
+tag in `index.html` give the site a proper icon (a speech-bubble/question-mark
+mark) when added to a phone's Home Screen, instead of a screenshot thumbnail.
+The source SVG isn't checked in — if you want to change the design, regenerate
+the PNGs with `sharp` (or any SVG rasterizer) at 16/32/180/192/512px into
+`public/icons/`.
+
+## Developer push notifications
+
+While logged in as Developer, you can turn on real push notifications (via
+the "Enable notifications" link next to the "Logged in as Developer" badge)
+for new topics and new replies anywhere on the site — they arrive even when
+the site isn't open, using the Web Push API and a service worker
+(`public/sw.js`). On iOS this requires adding the site to your Home Screen
+first (iOS only allows web push for installed PWAs).
+
+This needs a VAPID key pair (the identity keys the server signs push
+requests with) as two more secrets/vars, **not stored in this repo**:
+
+- `VAPID_PUBLIC_KEY` — not sensitive, can be a plain variable.
+- `VAPID_PRIVATE_KEY_JWK` — the private key as a JSON Web Key string; set as
+  an **encrypted secret**.
+- `VAPID_SUBJECT` (optional) — a `mailto:` contact address included in push
+  requests; defaults to `mailto:admin@multiportllc.com` if unset.
+
+Generate a pair once with Node:
+
+```js
+const { webcrypto } = require('node:crypto');
+const subtle = webcrypto.subtle;
+const b64url = (buf) => Buffer.from(buf).toString('base64')
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+(async () => {
+  const keyPair = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  console.log('VAPID_PUBLIC_KEY=' + b64url(await subtle.exportKey('raw', keyPair.publicKey)));
+  console.log('VAPID_PRIVATE_KEY_JWK=' + JSON.stringify(await subtle.exportKey('jwk', keyPair.privateKey)));
+})();
+```
+
+Set both values in the Pages project's **Settings → Variables and secrets**
+(same place as `DEV_PASSWORD`), then trigger a redeploy. Push subscriptions
+are stored in the `push_subscriptions` D1 table (`migrations/0003_push.sql`);
+a subscription that a push service reports as gone (404/410) is pruned
+automatically the next time a notification is sent.
