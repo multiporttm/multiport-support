@@ -14,8 +14,8 @@ function formatDate(sqlUtcString) {
   const iso = sqlUtcString.replace(' ', 'T') + 'Z';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return sqlUtcString;
-  return d.toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric'
   });
 }
 
