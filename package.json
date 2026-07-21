@@ -1,0 +1,15 @@
+{
+  "name": "multiport-support",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public",
+    "db:create": "wrangler d1 create multiport-support-db",
+    "db:migrate:local": "wrangler d1 migrations apply multiport-support-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply multiport-support-db --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
