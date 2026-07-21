@@ -189,13 +189,9 @@ async function renderNewTopic(slug) {
   render(`
     ${breadcrumbs([{ label: 'Communities', href: '/' }, { label: categoryName, href: `/c/${slug}` }, { label: 'New topic', href: `/c/${slug}/new` }])}
     <h1 class="page-title">Ask a question</h1>
-    <p class="page-desc">Posting in <strong>${escapeHtml(categoryName)}</strong>. No account needed — you can post as Anonymous.</p>
+    <p class="page-desc">Posting in <strong>${escapeHtml(categoryName)}</strong>. No account needed — everyone posts as Anonymous.</p>
     <form id="new-topic-form" class="stack">
-      ${loggedIn
-        ? '<div class="dev-badge">Posting as Developer</div>'
-        : `<label>Your name (optional)
-        <input type="text" name="author_name" placeholder="Anonymous" maxlength="60">
-      </label>`}
+      <div class="name-badge${loggedIn ? ' name-badge--dev' : ''}">Posting as ${loggedIn ? 'Developer' : 'Anonymous'}</div>
       <label>Title
         <input type="text" name="title" required maxlength="200">
       </label>
@@ -220,7 +216,6 @@ async function renderNewTopic(slug) {
     errorEl.textContent = '';
     const payload = {
       category: slug,
-      author_name: form.author_name ? form.author_name.value : '',
       title: form.title.value,
       body: form.body.value,
       website: form.website.value,
@@ -277,11 +272,7 @@ async function renderTopic(id) {
     ${repliesHtml}
 
     <form id="reply-form" class="stack">
-      ${loggedIn
-        ? '<div class="dev-badge">Posting as Developer</div>'
-        : `<label>Your name (optional)
-        <input type="text" name="author_name" placeholder="Anonymous" maxlength="60">
-      </label>`}
+      <div class="name-badge${loggedIn ? ' name-badge--dev' : ''}">Posting as ${loggedIn ? 'Developer' : 'Anonymous'}</div>
       <label>Your reply
         <textarea name="body" required rows="5" maxlength="10000"></textarea>
       </label>
@@ -313,7 +304,6 @@ async function renderTopic(id) {
     const errorEl = document.getElementById('reply-error');
     errorEl.textContent = '';
     const payload = {
-      author_name: form.author_name ? form.author_name.value : '',
       body: form.body.value,
       website: form.website.value,
     };

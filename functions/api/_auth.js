@@ -1,5 +1,3 @@
-export const RESERVED_AUTHOR_NAME = 'developer';
-
 const SESSION_COOKIE = 'mp_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 

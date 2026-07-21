@@ -1,5 +1,5 @@
-import { MAX_BODY, cleanAuthorName } from '../../_limits.js';
-import { isLoggedIn, RESERVED_AUTHOR_NAME } from '../../_auth.js';
+import { MAX_BODY } from '../../_limits.js';
+import { isLoggedIn } from '../../_auth.js';
 
 export async function onRequestPost({ request, env, params }) {
   const id = Number(params.id);
@@ -20,7 +20,6 @@ export async function onRequestPost({ request, env, params }) {
   }
 
   const body = String(data.body || '').trim();
-  const requestedName = cleanAuthorName(data.author_name);
 
   if (!body) {
     return Response.json({ error: 'body is required' }, { status: 400 });
@@ -30,13 +29,7 @@ export async function onRequestPost({ request, env, params }) {
   }
 
   const loggedIn = await isLoggedIn(request, env);
-  if (!loggedIn && requestedName.toLowerCase() === RESERVED_AUTHOR_NAME) {
-    return Response.json(
-      { error: '"Developer" is a reserved name. Please choose another name, or log in.' },
-      { status: 403 }
-    );
-  }
-  const authorName = loggedIn ? 'Developer' : requestedName;
+  const authorName = loggedIn ? 'Developer' : 'Anonymous';
 
   const topic = await env.DB.prepare('SELECT id FROM topics WHERE id = ?').bind(id).first();
   if (!topic) {

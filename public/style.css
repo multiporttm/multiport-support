@@ -65,6 +65,21 @@ a:hover {
   padding: 3px 10px;
   border-radius: 980px;
 }
+
+.name-badge {
+  display: inline-block;
+  align-self: flex-start;
+  background: var(--bg-muted, #e8e8ed);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 980px;
+}
+.name-badge--dev {
+  background: var(--green);
+  color: #fff;
+}
 .brand {
   font-size: 24px;
   font-weight: 600;
