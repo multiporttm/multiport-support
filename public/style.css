@@ -42,6 +42,29 @@ a:hover {
   margin: 0 auto;
   padding: 20px 24px 16px;
 }
+.header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.auth-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dev-badge {
+  display: inline-block;
+  background: var(--green);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 980px;
+}
 .brand {
   font-size: 24px;
   font-weight: 600;
@@ -239,6 +262,10 @@ input[type="text"]:focus, textarea:focus {
   padding: 20px;
   margin-bottom: 20px;
 }
+.topic-post h1.page-title {
+  color: var(--text);
+  text-shadow: none;
+}
 .post-body {
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -268,6 +295,21 @@ input[type="text"]:focus, textarea:focus {
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  margin-top: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.link-btn:hover {
+  text-decoration: underline;
 }
 
 .loading {

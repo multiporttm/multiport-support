@@ -18,6 +18,9 @@ Built on **Cloudflare Pages** (static frontend + Pages Functions API) and
   - `POST /api/topics` — create a topic `{ category, title, body, author_name }`
   - `GET /api/topics/:id` — topic + its replies
   - `POST /api/topics/:id/replies` — post a reply `{ body, author_name }`
+  - `POST /api/login` — developer login `{ password }`, sets a session cookie
+  - `POST /api/logout` — clears the session cookie
+  - `GET /api/session` — `{ loggedIn: boolean }`
 - `migrations/` — D1 schema + seed data for the default categories
 
 ## Local setup
@@ -58,7 +61,35 @@ D1 database declared in `wrangler.toml`.
 
 ## Anonymous posting & spam protection
 
-There is no login or account system. Every topic and reply stores only a
+Nobody needs an account to browse or post. Every topic and reply stores only a
 free-text display name (defaulting to "Anonymous") alongside the content.
 Both the new-topic and reply forms include a hidden honeypot field to deter
-basic spam bots, and input length is capped server-side.
+basic spam bots, and input length is capped server-side. The reply form on a
+topic also has a "Reply" link under each post that quotes it into the
+textarea, so you can reply directly to what someone said.
+
+## Developer login
+
+There's a single site-owner login (no username, just a password) at `#/login`.
+Logging in swaps your posted name from whatever you type to **"Developer"**,
+so readers can tell when the site owner is responding. "Developer" is a
+reserved name — nobody can type it into the name field and pretend to be you;
+the server only accepts it from an authenticated session.
+
+The password is **not stored in this repo**. It's read from the `DEV_PASSWORD`
+environment variable/secret at request time:
+
+- **Locally**: already set in `.dev.vars` (git-ignored) for `npm run dev`.
+- **Production**: set it once via
+  ```
+  npx wrangler pages secret put DEV_PASSWORD
+  ```
+  (or in the dashboard under Pages project → Settings → Environment variables →
+  add `DEV_PASSWORD` as an **encrypted** variable). If it's never set, the
+  login endpoint refuses all attempts instead of falling back to a default.
+
+Login is rate-limited per IP address (tracked in the `login_attempts` D1
+table from `migrations/0002_auth.sql`): **2 incorrect guesses locks that IP
+out for 15 minutes** before it can try again. A successful login stores a
+random session token in the `sessions` table and sets an HttpOnly cookie
+(12-hour expiry); "Log out" in the header clears both.

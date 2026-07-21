@@ -1,4 +1,5 @@
 const app = document.getElementById('app');
+let loggedIn = false;
 
 function escapeHtml(str) {
   return String(str)
@@ -40,6 +41,76 @@ function breadcrumbs(items) {
     return `<a href="#${item.href}">${escapeHtml(item.label)}</a>`;
   });
   return `<div class="breadcrumbs">${parts.join('<span class="sep">/</span>')}</div>`;
+}
+
+function quoteOf(authorName, body) {
+  const quoted = body.split('\n').map(line => `> ${line}`).join('\n');
+  return `${authorName} wrote:\n${quoted}\n\n`;
+}
+
+// ---- Auth ----
+
+async function refreshAuthStatus() {
+  try {
+    const session = await api('/api/session');
+    loggedIn = !!session.loggedIn;
+  } catch {
+    loggedIn = false;
+  }
+  renderAuthStatus();
+}
+
+function renderAuthStatus() {
+  const el = document.getElementById('auth-status');
+  if (!el) return;
+  if (loggedIn) {
+    el.innerHTML = `<span class="dev-badge">Logged in as Developer</span><a href="#" id="logout-link">Log out</a>`;
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await api('/api/logout', { method: 'POST' }); } catch { /* ignore */ }
+      loggedIn = false;
+      renderAuthStatus();
+      router();
+    });
+  } else {
+    el.innerHTML = `<a href="#/login">Developer log in</a>`;
+  }
+}
+
+async function renderLogin() {
+  render(`
+    <h1 class="page-title">Developer log in</h1>
+    <p class="page-desc">This is just for the site owner. Replies and topics posted while logged in show as "Developer" instead of a made-up name.</p>
+    <form id="login-form" class="stack">
+      <label>Password
+        <input type="password" name="password" required autofocus>
+      </label>
+      <div class="form-error" id="login-error"></div>
+      <div class="form-actions">
+        <a class="btn secondary" href="#/">Cancel</a>
+        <button type="submit" class="btn">Log in</button>
+      </div>
+    </form>
+  `);
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = '';
+    try {
+      await api('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: form.password.value }),
+      });
+      loggedIn = true;
+      renderAuthStatus();
+      location.hash = '#/';
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
 }
 
 // ---- Views ----
@@ -120,9 +191,11 @@ async function renderNewTopic(slug) {
     <h1 class="page-title">Ask a question</h1>
     <p class="page-desc">Posting in <strong>${escapeHtml(categoryName)}</strong>. No account needed — you can post as Anonymous.</p>
     <form id="new-topic-form" class="stack">
-      <label>Your name (optional)
+      ${loggedIn
+        ? '<div class="dev-badge">Posting as Developer</div>'
+        : `<label>Your name (optional)
         <input type="text" name="author_name" placeholder="Anonymous" maxlength="60">
-      </label>
+      </label>`}
       <label>Title
         <input type="text" name="title" required maxlength="200">
       </label>
@@ -147,7 +220,7 @@ async function renderNewTopic(slug) {
     errorEl.textContent = '';
     const payload = {
       category: slug,
-      author_name: form.author_name.value,
+      author_name: form.author_name ? form.author_name.value : '',
       title: form.title.value,
       body: form.body.value,
       website: form.website.value,
@@ -177,11 +250,12 @@ async function renderTopic(id) {
 
   const { topic, replies } = data;
 
-  const repliesHtml = replies.map(r => `
+  const repliesHtml = replies.map((r, idx) => `
     <div class="reply">
       <div class="post-author">${escapeHtml(r.author_name)}</div>
       <div class="post-meta">${escapeHtml(formatDate(r.created_at))}</div>
       <p class="post-body">${escapeHtml(r.body)}</p>
+      <button type="button" class="link-btn quote-btn" data-idx="${idx}">Reply</button>
     </div>
   `).join('');
 
@@ -196,15 +270,18 @@ async function renderTopic(id) {
       <div class="post-author">${escapeHtml(topic.author_name)}</div>
       <div class="post-meta">${escapeHtml(formatDate(topic.created_at))}</div>
       <p class="post-body">${escapeHtml(topic.body)}</p>
+      <button type="button" class="link-btn quote-btn" data-idx="topic">Reply</button>
     </div>
 
     <h2 class="replies-heading">${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}</h2>
     ${repliesHtml}
 
     <form id="reply-form" class="stack">
-      <label>Your name (optional)
+      ${loggedIn
+        ? '<div class="dev-badge">Posting as Developer</div>'
+        : `<label>Your name (optional)
         <input type="text" name="author_name" placeholder="Anonymous" maxlength="60">
-      </label>
+      </label>`}
       <label>Your reply
         <textarea name="body" required rows="5" maxlength="10000"></textarea>
       </label>
@@ -218,13 +295,25 @@ async function renderTopic(id) {
     </form>
   `);
 
+  document.querySelectorAll('.quote-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = btn.getAttribute('data-idx');
+      const source = idx === 'topic' ? topic : replies[Number(idx)];
+      const textarea = document.querySelector('#reply-form textarea[name=body]');
+      textarea.value = quoteOf(source.author_name, source.body);
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
   document.getElementById('reply-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const errorEl = document.getElementById('reply-error');
     errorEl.textContent = '';
     const payload = {
-      author_name: form.author_name.value,
+      author_name: form.author_name ? form.author_name.value : '',
       body: form.body.value,
       website: form.website.value,
     };
@@ -253,6 +342,8 @@ function router() {
 
   if (hash === '/') {
     renderHome();
+  } else if (hash === '/login') {
+    renderLogin();
   } else if (newTopicMatch) {
     renderNewTopic(decodeURIComponent(newTopicMatch[1]));
   } else if (categoryMatch) {
@@ -265,4 +356,7 @@ function router() {
 }
 
 window.addEventListener('hashchange', router);
-window.addEventListener('DOMContentLoaded', router);
+window.addEventListener('DOMContentLoaded', async () => {
+  await refreshAuthStatus();
+  router();
+});
