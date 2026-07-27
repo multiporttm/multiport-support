@@ -1,6 +1,6 @@
 # Multiport Support™
 
-By Multiport LLC.
+By Multiport.
 
 A lightweight, Apple Discussions–style community support board for Multiport.
 Anyone can browse and post — starting a topic or replying requires no account.
