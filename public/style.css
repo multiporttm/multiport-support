@@ -123,6 +123,20 @@ a:hover {
   font-size: 12px;
   padding: 24px;
 }
+.footer-column {
+  margin-bottom: 16px;
+}
+.footer-heading {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+.footer-column a {
+  color: #fff;
+  font-size: 13px;
+}
 
 .breadcrumbs {
   font-size: 13px;
