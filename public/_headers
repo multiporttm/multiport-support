@@ -1,2 +1,2 @@
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.counter.dev; style-src 'self'; img-src 'self' data: https://counter.dev https://*.counter.dev; connect-src 'self' https://counter.dev https://*.counter.dev; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.counter.dev; style-src 'self'; img-src 'self' data: https://counter.dev https://t.counter.dev https://*.counter.dev; connect-src 'self' https://counter.dev https://t.counter.dev https://*.counter.dev; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
