@@ -116,6 +116,27 @@ a:hover {
   min-height: 60vh;
 }
 
+.intro {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.intro-inner {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.intro-inner p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.intro-inner p:last-child {
+  margin-bottom: 0;
+}
+
 .site-footer {
   text-align: center;
   color: rgba(255, 255, 255, 0.92);
