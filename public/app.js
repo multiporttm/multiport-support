@@ -48,6 +48,17 @@ function quoteOf(authorName, body) {
   return `${authorName} wrote:\n${quoted}\n\n`;
 }
 
+function avatarHtml(name) {
+  const isDev = name === 'Developer';
+  const initial = escapeHtml((name || 'A').trim().charAt(0).toUpperCase() || 'A');
+  return `<div class="avatar${isDev ? ' avatar--dev' : ''}">${initial}</div>`;
+}
+
+function categoryIconHtml(name, index) {
+  const initial = escapeHtml((name || '?').trim().charAt(0).toUpperCase() || '?');
+  return `<div class="cat-icon cat-icon-${index % 4}">${initial}</div>`;
+}
+
 // ---- Push notifications (developer only) ----
 
 function pushSupported() {
@@ -215,11 +226,14 @@ async function renderHome() {
     return;
   }
 
-  const cards = categories.map(c => `
+  const cards = categories.map((c, i) => `
     <div class="card">
-      <h2 class="card-title"><a href="#/c/${encodeURIComponent(c.slug)}">${escapeHtml(c.name)}</a></h2>
-      <p class="card-desc">${escapeHtml(c.description)}</p>
-      <div class="card-meta">${c.topic_count} topic${c.topic_count === 1 ? '' : 's'}${c.last_activity_at ? ' · last activity ' + escapeHtml(formatDate(c.last_activity_at)) : ''}</div>
+      ${categoryIconHtml(c.name, i)}
+      <div class="card-body">
+        <h2 class="card-title"><a href="#/c/${encodeURIComponent(c.slug)}">${escapeHtml(c.name)}</a></h2>
+        <p class="card-desc">${escapeHtml(c.description)}</p>
+        <div class="card-meta">${c.topic_count} topic${c.topic_count === 1 ? '' : 's'}${c.last_activity_at ? ' · last activity ' + escapeHtml(formatDate(c.last_activity_at)) : ''}</div>
+      </div>
     </div>
   `).join('');
 
@@ -246,8 +260,10 @@ async function renderCategory(slug) {
 
   const rows = topics.map(t => `
     <div class="card">
-      <h2 class="card-title"><a href="#/t/${t.id}">${escapeHtml(t.title)}</a></h2>
-      <div class="card-meta">by ${escapeHtml(t.author_name)} · ${t.reply_count} repl${t.reply_count === 1 ? 'y' : 'ies'} · last activity ${escapeHtml(formatDate(t.last_activity_at))}</div>
+      <div class="card-body">
+        <h2 class="card-title"><a href="#/t/${t.id}">${escapeHtml(t.title)}</a></h2>
+        <div class="card-meta">by ${escapeHtml(t.author_name)} · ${t.reply_count} repl${t.reply_count === 1 ? 'y' : 'ies'} · last activity ${escapeHtml(formatDate(t.last_activity_at))}</div>
+      </div>
     </div>
   `).join('');
 
@@ -337,10 +353,13 @@ async function renderTopic(id) {
 
   const repliesHtml = replies.map((r, idx) => `
     <div class="reply">
-      <div class="post-author">${escapeHtml(r.author_name)}</div>
-      <div class="post-meta">${escapeHtml(formatDate(r.created_at))}</div>
-      <p class="post-body">${escapeHtml(r.body)}</p>
-      <button type="button" class="link-btn quote-btn" data-idx="${idx}">Reply</button>
+      ${avatarHtml(r.author_name)}
+      <div class="post-main">
+        <div class="post-author">${escapeHtml(r.author_name)}</div>
+        <div class="post-meta">${escapeHtml(formatDate(r.created_at))}</div>
+        <p class="post-body">${escapeHtml(r.body)}</p>
+        <button type="button" class="link-btn quote-btn" data-idx="${idx}">Reply</button>
+      </div>
     </div>
   `).join('');
 
@@ -351,11 +370,14 @@ async function renderTopic(id) {
       { label: topic.title, href: `/t/${topic.id}` },
     ])}
     <div class="topic-post">
-      <h1 class="page-title">${escapeHtml(topic.title)}</h1>
-      <div class="post-author">${escapeHtml(topic.author_name)}</div>
-      <div class="post-meta">${escapeHtml(formatDate(topic.created_at))}</div>
-      <p class="post-body">${escapeHtml(topic.body)}</p>
-      <button type="button" class="link-btn quote-btn" data-idx="topic">Reply</button>
+      ${avatarHtml(topic.author_name)}
+      <div class="post-main">
+        <h1 class="page-title">${escapeHtml(topic.title)}</h1>
+        <div class="post-author">${escapeHtml(topic.author_name)}</div>
+        <div class="post-meta">${escapeHtml(formatDate(topic.created_at))}</div>
+        <p class="post-body">${escapeHtml(topic.body)}</p>
+        <button type="button" class="link-btn quote-btn" data-idx="topic">Reply</button>
+      </div>
     </div>
 
     <h2 class="replies-heading">${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}</h2>
