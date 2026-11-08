@@ -227,7 +227,7 @@ async function renderHome() {
   }
 
   const cards = categories.map((c, i) => `
-    <div class="card">
+    <div class="card cat-border-${i % 4}">
       ${categoryIconHtml(c.name, i)}
       <div class="card-body">
         <h2 class="card-title"><a href="#/c/${encodeURIComponent(c.slug)}">${escapeHtml(c.name)}</a></h2>
