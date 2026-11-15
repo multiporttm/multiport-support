@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 export const VAPID_PUBLIC_KEY = 'BMoS90XMSRMjm6BzboubQUimZrgBFHkTNO13Ik9FCB-I1e8F1Ovjg21bcxOq7bkPDJV39ZFT85autX59nVomP6A';
 
 const VAPID_PRIVATE_KEY_JWK = {
