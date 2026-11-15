@@ -148,3 +148,11 @@ to `mailto:admin@multiportllc.com`.
 Push subscriptions are stored in the `push_subscriptions` D1 table
 (`migrations/0003_push.sql`); a subscription that a push service reports as
 gone (404/410) is pruned automatically the next time a notification is sent.
+
+## License
+
+Licensed under the [Mozilla Public License 2.0](LICENSE) (MPL-2.0). MPL is a
+file-level copyleft license: you're free to use, modify, and distribute this
+code (including in proprietary projects), but changes to files that are
+already part of this project must be released under MPL-2.0 too if you
+distribute them.
