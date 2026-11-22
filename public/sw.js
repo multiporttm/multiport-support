@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
     data = {};
   }
 
-  const title = data.title || 'Multiport Support';
+  const title = data.title || 'Multiport Newsletter and Support';
   const options = {
     body: data.body || '',
     icon: '/icons/icon-192.png',

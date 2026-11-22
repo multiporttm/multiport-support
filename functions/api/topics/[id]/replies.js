@@ -51,7 +51,7 @@ export async function onRequestPost({ request, env, params, waitUntil }) {
 
   if (!loggedIn) {
     waitUntil(notifySubscribers(env, {
-      title: 'New reply on Multiport Support',
+      title: 'New reply on Multiport Newsletter and Support',
       body: `${topic.title}: ${body}`,
       url: `/#/t/${id}`,
     }).catch(() => {}));
